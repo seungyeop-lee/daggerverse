@@ -1,5 +1,5 @@
 // Copy to/from remote server using SCP
-
+//
 // Performs copying of files and directories to and from a remote server over SCP using password or IdentityFile.
 package main
 
