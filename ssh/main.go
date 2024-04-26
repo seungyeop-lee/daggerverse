@@ -1,3 +1,6 @@
+// Run remote server commands using SSH
+
+// SSH in with a password or IdentityFile to execute commands on the remote server.
 package main
 
 import (
@@ -6,7 +9,31 @@ import (
 	"fmt"
 )
 
-type Ssh struct {
+// SSH dagger module
+type Ssh struct{}
+
+// Set configuration for SSH connections.
+func (s *Ssh) Config(
+	// destination to connect
+	// ex) user@host
+	destination string,
+	// port to connect
+	// +optional
+	// +default=22
+	port int,
+) *SshConfig {
+	return &SshConfig{
+		Destination: destination,
+		Port:        port,
+		BaseCtr: dag.Container().
+			From("ubuntu:22.04").
+			WithExec([]string{"apt", "update"}).
+			WithExec([]string{"apt", "install", "-y", "openssh-client", "sshpass"}),
+	}
+}
+
+// SSH configuration
+type SshConfig struct {
 	// +private
 	Destination string
 	// +private
@@ -14,55 +41,49 @@ type Ssh struct {
 
 	// +private
 	BaseCtr *Container
-	// +private
-	SshCommand string
 }
 
-func (s *Ssh) Config(
-	// destination to connect
-	destination string,
-	// port to connect
-	// +optional
-	// +default=22
-	port int,
-) (*Ssh, error) {
-	s.Destination = destination
-	s.Port = port
-
-	s.BaseCtr = dag.Container().
-		From("ubuntu:22.04").
-		WithExec([]string{"apt", "update"}).
-		WithExec([]string{"apt", "install", "-y", "openssh-client", "sshpass"})
-
-	return s, nil
-}
-
-func (s *Ssh) WithPassword(
+// Set the password as the SSH connection credentials.
+func (s *SshConfig) WithPassword(
 	ctx context.Context,
 	// password
 	arg *Secret,
-) (*Ssh, error) {
+) (*SshCommander, error) {
 	passwordText, err := arg.Plaintext(ctx)
 	if err != nil {
 		return nil, errors.New("invalid password secret")
 	}
-	s.SshCommand = fmt.Sprintf(`sshpass -p %s ssh -o StrictHostKeyChecking=no -p %d %s`, passwordText, s.Port, s.Destination)
 
-	return s, nil
+	return &SshCommander{
+		BaseCtr:    s.BaseCtr,
+		SshCommand: fmt.Sprintf(`sshpass -p %s ssh -o StrictHostKeyChecking=no -p %d %s`, passwordText, s.Port, s.Destination),
+	}, nil
 }
 
-func (s *Ssh) WithIdentityFile(
+// Set up identity file with SSH connection credentials.
+func (s *SshConfig) WithIdentityFile(
 	// identity file
 	arg *Secret,
-) (*Ssh, error) {
+) (*SshCommander, error) {
 	keyPath := "/identity_key"
-	s.BaseCtr = s.BaseCtr.WithMountedSecret(keyPath, arg)
-	s.SshCommand = fmt.Sprintf(`ssh -i %s -o StrictHostKeyChecking=no -p %d %s`, keyPath, s.Port, s.Destination)
 
-	return s, nil
+	return &SshCommander{
+		BaseCtr:    s.BaseCtr.WithMountedSecret(keyPath, arg),
+		SshCommand: fmt.Sprintf(`ssh -i %s -o StrictHostKeyChecking=no -p %d %s`, keyPath, s.Port, s.Destination),
+	}, nil
 }
 
-func (s *Ssh) Command(
+// SSH command launcher
+type SshCommander struct {
+	// +private
+	BaseCtr *Container
+	// +private
+	SshCommand string
+}
+
+// Run the command on the remote server.
+func (s *SshCommander) Command(
+	// command
 	arg string,
 ) *Container {
 	exec := s.BaseCtr.WithExec([]string{
