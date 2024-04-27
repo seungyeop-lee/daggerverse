@@ -1,7 +1,7 @@
 package main
 
 import (
-	"dagger/git/internal/dagger"
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -27,16 +27,13 @@ func New() *PrivateGit {
 	}
 }
 
-func (g *PrivateGit) Push(
+func (g *PrivateGit) Repo(
 	dir *Directory,
-) *Container {
-	return push(dir, g.BaseCtr)
-}
-
-func (g *PrivateGit) Pull(
-	dir *Directory,
-) *Directory {
-	return pull(dir, g.BaseCtr)
+) *PrivateGitRepo {
+	return &PrivateGitRepo{
+		BaseCtr: g.BaseCtr,
+		RepoDir: dir,
+	}
 }
 
 func (g *PrivateGit) WithSshKey(
@@ -47,32 +44,6 @@ func (g *PrivateGit) WithSshKey(
 			WithFile("/tmp/.ssh/id", sshKey, ContainerWithFileOpts{Permissions: 0400}).
 			WithEnvVariable("GIT_SSH_COMMAND", "ssh -i /tmp/.ssh/id -o StrictHostKeyChecking=accept-new"),
 	}
-}
-
-type PrivateGitSsh struct {
-	// +private
-	BaseCtr *Container
-}
-
-func (g *PrivateGitSsh) WithRepository(
-	sshUrl string,
-) *PrivateGitRepo {
-	return &PrivateGitRepo{
-		BaseCtr: g.BaseCtr,
-		RepoUrl: sshUrl,
-	}
-}
-
-func (g *PrivateGitSsh) Push(
-	dir *Directory,
-) *Container {
-	return push(dir, g.BaseCtr)
-}
-
-func (g *PrivateGitSsh) Pull(
-	dir *Directory,
-) *Directory {
-	return pull(dir, g.BaseCtr)
 }
 
 func (g *PrivateGit) WithUserPassword(
@@ -86,6 +57,29 @@ func (g *PrivateGit) WithUserPassword(
 	}
 }
 
+type PrivateGitSsh struct {
+	// +private
+	BaseCtr *Container
+}
+
+func (g *PrivateGitSsh) WithRepoUrl(
+	sshUrl string,
+) *PrivateGitRepoUrl {
+	return &PrivateGitRepoUrl{
+		BaseCtr: g.BaseCtr,
+		RepoUrl: sshUrl,
+	}
+}
+
+func (g *PrivateGitSsh) Repo(
+	dir *Directory,
+) *PrivateGitRepo {
+	return &PrivateGitRepo{
+		BaseCtr: g.BaseCtr,
+		RepoDir: dir,
+	}
+}
+
 type PrivateGitHttp struct {
 	// +private
 	BaseCtr *Container
@@ -95,53 +89,69 @@ type PrivateGitHttp struct {
 	Password string
 }
 
-func (g *PrivateGitHttp) WithRepository(
+func (g *PrivateGitHttp) WithRepoUrl(
 	webUrl string,
-) *PrivateGitRepo {
-	return &PrivateGitRepo{
+) *PrivateGitRepoUrl {
+	return &PrivateGitRepoUrl{
 		BaseCtr: g.BaseCtr,
 		RepoUrl: strings.ReplaceAll(webUrl, "://", fmt.Sprintf("://%s:%s@", g.Username, g.Password)),
 	}
 }
 
-type PrivateGitRepo struct {
+type PrivateGitRepoUrl struct {
 	// +private
 	BaseCtr *Container
 	// +private
 	RepoUrl string
 }
 
-func (g *PrivateGitRepo) Clone() *Directory {
-	return g.BaseCtr.
+func (g *PrivateGitRepoUrl) Clone(
+	ctx context.Context,
+) (*PrivateGitRepo, error) {
+	repoDir, err := g.BaseCtr.
 		WithExec([]string{"git", "clone", g.RepoUrl, "."}).
-		Directory(WorkDir)
-}
-
-func (g *PrivateGitRepo) Config(
-	userName string,
-	userEmail string,
-) *PrivateGitRepoWork {
-	return &PrivateGitRepoWork{
-		BaseCtr: g.BaseCtr.
-			WithExec([]string{"git", "config", "--global", "user.name", userName}).
-			WithExec([]string{"git", "config", "--global", "user.email", userEmail}),
+		Directory(WorkDir).
+		Sync(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	return &PrivateGitRepo{
+		BaseCtr: g.BaseCtr,
+		RepoDir: repoDir,
+	}, nil
 }
 
-type PrivateGitRepoWork struct {
+type PrivateGitRepo struct {
 	// +private
 	BaseCtr *Container
+	// +private
+	RepoDir *Directory
 }
 
-func push(dir *Directory, c *Container) *dagger.Container {
-	return c.
-		WithDirectory(WorkDir, dir).
+func (g *PrivateGitRepo) Directory() *Directory {
+	return g.RepoDir
+}
+
+func (g *PrivateGitRepo) SetConfig(
+	userName string,
+	userEmail string,
+) *PrivateGitRepo {
+	g.BaseCtr = g.BaseCtr.
+		WithExec([]string{"git", "config", "--global", "user.name", userName}).
+		WithExec([]string{"git", "config", "--global", "user.email", userEmail})
+	return g
+}
+
+func (g *PrivateGitRepo) Push() *Container {
+	return g.BaseCtr.
+		WithDirectory(WorkDir, g.RepoDir).
 		WithExec([]string{"git", "push"})
 }
 
-func pull(dir *Directory, c *Container) *dagger.Directory {
-	return c.
-		WithDirectory(WorkDir, dir).
+func (g *PrivateGitRepo) Pull() *Directory {
+	return g.BaseCtr.
+		WithDirectory(WorkDir, g.RepoDir).
 		WithExec([]string{"git", "pull"}).
 		Directory(WorkDir)
 }
