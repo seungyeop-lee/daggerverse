@@ -46,17 +46,19 @@ func (g *PrivateGit) Repo(
 func (g *PrivateGit) WithSshKey(
 	sshKey *File,
 ) *PrivateGitSsh {
+	keyPath := "/identity_key"
+
 	return &PrivateGitSsh{
 		BaseCtr: g.BaseCtr.
-			WithFile("/tmp/.ssh/id", sshKey, ContainerWithFileOpts{Permissions: 0400}).
-			WithEnvVariable("GIT_SSH_COMMAND", "ssh -i /tmp/.ssh/id -o StrictHostKeyChecking=accept-new"),
+			WithFile(keyPath, sshKey, ContainerWithFileOpts{Permissions: 0400}).
+			WithEnvVariable("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=accept-new", keyPath)),
 	}
 }
 
 // Set up user and password information.
 func (g *PrivateGit) WithUserPassword(
 	username string,
-	password string,
+	password *Secret,
 ) *PrivateGitHttp {
 	return &PrivateGitHttp{
 		BaseCtr:  g.BaseCtr,
@@ -98,17 +100,23 @@ type PrivateGitHttp struct {
 	// +private
 	Username string
 	// +private
-	Password string
+	Password *Secret
 }
 
 // Set the Web URL of the target repository.
 func (g *PrivateGitHttp) WithRepoUrl(
+	ctx context.Context,
 	webUrl string,
-) *PrivateGitRepoUrl {
+) (*PrivateGitRepoUrl, error) {
+	passwordPlain, err := g.Password.Plaintext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PrivateGitRepoUrl{
 		BaseCtr: g.BaseCtr,
-		RepoUrl: strings.ReplaceAll(webUrl, "://", fmt.Sprintf("://%s:%s@", g.Username, g.Password)),
-	}
+		RepoUrl: strings.ReplaceAll(webUrl, "://", fmt.Sprintf("://%s:%s@", g.Username, passwordPlain)),
+	}, nil
 }
 
 // PrivateGit with target Repositorydml URL information added
