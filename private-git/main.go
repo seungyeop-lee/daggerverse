@@ -1,3 +1,7 @@
+// Helper for private git operations
+//
+// A module to help you easily perform clone, push, and pull operations on your private git.
+
 package main
 
 import (
@@ -7,8 +11,10 @@ import (
 	"time"
 )
 
+// +private
 const WorkDir = "/tmp/repo/"
 
+// PrivateGit dagger module
 type PrivateGit struct {
 	// +private
 	BaseCtr *Container
@@ -21,12 +27,12 @@ func New() *PrivateGit {
 			WithWorkdir(WorkDir).
 			WithExec([]string{"apt", "update"}).
 			WithExec([]string{"apt", "install", "-y", "git"}).
-			//https://archive.docs.dagger.io/0.9/cookbook/#invalidate-cache
 			WithEnvVariable("CACHE_BUSTER", time.Now().String()).
 			WithExec([]string{"git", "config", "--global", "--add", "--bool", "push.autoSetupRemote", "true"}),
 	}
 }
 
+// Set up an existing repository folder.
 func (g *PrivateGit) Repo(
 	dir *Directory,
 ) *PrivateGitRepo {
@@ -36,6 +42,7 @@ func (g *PrivateGit) Repo(
 	}
 }
 
+// Set the ssh key.
 func (g *PrivateGit) WithSshKey(
 	sshKey *File,
 ) *PrivateGitSsh {
@@ -46,6 +53,7 @@ func (g *PrivateGit) WithSshKey(
 	}
 }
 
+// Set up user and password information.
 func (g *PrivateGit) WithUserPassword(
 	username string,
 	password string,
@@ -57,11 +65,13 @@ func (g *PrivateGit) WithUserPassword(
 	}
 }
 
+// PrivateGit with SSH settings
 type PrivateGitSsh struct {
 	// +private
 	BaseCtr *Container
 }
 
+// Set the SSH URL of the target repository.
 func (g *PrivateGitSsh) WithRepoUrl(
 	sshUrl string,
 ) *PrivateGitRepoUrl {
@@ -71,6 +81,7 @@ func (g *PrivateGitSsh) WithRepoUrl(
 	}
 }
 
+// Set up an existing repository folder.
 func (g *PrivateGitSsh) Repo(
 	dir *Directory,
 ) *PrivateGitRepo {
@@ -80,6 +91,7 @@ func (g *PrivateGitSsh) Repo(
 	}
 }
 
+// PrivateGit with user and password information added
 type PrivateGitHttp struct {
 	// +private
 	BaseCtr *Container
@@ -89,6 +101,7 @@ type PrivateGitHttp struct {
 	Password string
 }
 
+// Set the Web URL of the target repository.
 func (g *PrivateGitHttp) WithRepoUrl(
 	webUrl string,
 ) *PrivateGitRepoUrl {
@@ -98,6 +111,7 @@ func (g *PrivateGitHttp) WithRepoUrl(
 	}
 }
 
+// PrivateGit with target Repositorydml URL information added
 type PrivateGitRepoUrl struct {
 	// +private
 	BaseCtr *Container
@@ -105,6 +119,7 @@ type PrivateGitRepoUrl struct {
 	RepoUrl string
 }
 
+// Clone the Git repository.
 func (g *PrivateGitRepoUrl) Clone(
 	ctx context.Context,
 ) (*PrivateGitRepo, error) {
@@ -122,6 +137,7 @@ func (g *PrivateGitRepoUrl) Clone(
 	}, nil
 }
 
+// Working with private Git repositories
 type PrivateGitRepo struct {
 	// +private
 	BaseCtr *Container
@@ -129,10 +145,12 @@ type PrivateGitRepo struct {
 	RepoDir *Directory
 }
 
+// Returns the repository.
 func (g *PrivateGitRepo) Directory() *Directory {
 	return g.RepoDir
 }
 
+// Set the user's name and email.
 func (g *PrivateGitRepo) SetConfig(
 	userName string,
 	userEmail string,
@@ -143,12 +161,14 @@ func (g *PrivateGitRepo) SetConfig(
 	return g
 }
 
+// Push the repository.
 func (g *PrivateGitRepo) Push() *Container {
 	return g.BaseCtr.
 		WithDirectory(WorkDir, g.RepoDir).
 		WithExec([]string{"git", "push"})
 }
 
+// Pull the repository.
 func (g *PrivateGitRepo) Pull() *Directory {
 	return g.BaseCtr.
 		WithDirectory(WorkDir, g.RepoDir).
