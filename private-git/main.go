@@ -44,13 +44,14 @@ func (g *PrivateGit) Repo(
 
 // Set the ssh key.
 func (g *PrivateGit) WithSshKey(
-	sshKey *File,
+	// RSA private key
+	sshKey *Secret,
 ) *PrivateGitSsh {
 	keyPath := "/identity_key"
 
 	return &PrivateGitSsh{
 		BaseCtr: g.BaseCtr.
-			WithFile(keyPath, sshKey, ContainerWithFileOpts{Permissions: 0400}).
+			WithMountedSecret(keyPath, sshKey).
 			WithEnvVariable("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=accept-new", keyPath)),
 	}
 }
