@@ -61,6 +61,9 @@ func (s *SshConfig) WithPassword(
 }
 
 // Set up identity file with SSH connection credentials.
+//
+// Note: Recommend using RSA-formatted private key files. Cannot use OPENSSH-formatted private key files.
+// https://github.com/dagger/dagger/issues/7220
 func (s *SshConfig) WithIdentityFile(
 	// identity file
 	arg *Secret,

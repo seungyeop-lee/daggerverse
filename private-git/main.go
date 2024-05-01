@@ -43,8 +43,11 @@ func (g *PrivateGit) Repo(
 }
 
 // Set the ssh key.
+//
+// Note: Recommend using RSA-formatted private key files. Cannot use OPENSSH-formatted private key files.
+// https://github.com/dagger/dagger/issues/7220
 func (g *PrivateGit) WithSshKey(
-	// RSA private key
+	// ssk key file
 	sshKey *Secret,
 ) *PrivateGitSsh {
 	keyPath := "/identity_key"
