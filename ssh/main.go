@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // SSH dagger module
@@ -119,11 +120,13 @@ func (s *SshCommander) Command(
 	// command
 	arg string,
 ) *Container {
-	exec := s.BaseCtr.WithExec([]string{
-		"bash",
-		"-c",
-		fmt.Sprintf(`%s "%s"`, s.SshCommand, arg),
-	})
+	exec := s.BaseCtr.
+		WithEnvVariable("CACHE_BUSTER", time.Now().String()).
+		WithExec([]string{
+			"bash",
+			"-c",
+			fmt.Sprintf(`%s "%s"`, s.SshCommand, arg),
+		})
 
 	return exec
 }
