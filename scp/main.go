@@ -124,6 +124,11 @@ type ScpCommander struct {
 	ScpBaseCommand []string
 }
 
+// Returns a container that is ready to launch SCP command.
+func (s *ScpCommander) Container() *Container {
+	return s.BaseCtr
+}
+
 // Copy a file to a remote server.
 func (s *ScpCommander) FileToRemote(
 	ctx context.Context,
