@@ -84,18 +84,21 @@ func (s *SshConfig) WithPassword(
 
 // Set up identity file with SSH connection credentials.
 //
-// Note: Recommend using RSA-formatted private key files. Cannot use OPENSSH-formatted private key files.
-// https://github.com/dagger/dagger/issues/7220
+// Note: Tested against RSA-formatted and OPENSSH-formatted private keys.
 func (s *SshConfig) WithIdentityFile(
 	// identity file
 	arg *Secret,
-) (*SshCommander, error) {
+) *SshCommander {
+	//https://github.com/dagger/dagger/issues/7220
+	tempKeyPath := "/identity_temp_key"
 	keyPath := "/identity_key"
 
 	return &SshCommander{
-		BaseCtr:    s.BaseCtr.WithMountedSecret(keyPath, arg),
+		BaseCtr: s.BaseCtr.WithMountedSecret(tempKeyPath, arg).
+			WithExec([]string{"cp", tempKeyPath, keyPath}).
+			WithExec([]string{"sh", "-c", "echo '' >> " + keyPath}),
 		SshCommand: fmt.Sprintf(`ssh -i %s -o StrictHostKeyChecking=no -p %d %s`, keyPath, s.Port, s.Destination),
-	}, nil
+	}
 }
 
 // SSH command launcher
