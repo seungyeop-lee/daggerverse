@@ -12,6 +12,24 @@ import (
 // SSH dagger module
 type Ssh struct{}
 
+// Get the base container for the SSH module.
+// Used when you need to inject a Service into a BaseContainer and run it.
+//
+// Example:
+//
+//	dag.SSH().Config("admin@sshd", SSHConfigOpts{
+//		Port:    8022,
+//		BaseCtr: dag.SSH().BaseContainer().WithServiceBinding("sshd", sshd)
+//	})...
+//
+// Note: As of v0.11.2, passing a Service directly as a parameter to an external dagger function would not bind to the container created inside the dagger function.
+func (s *Ssh) BaseContainer() *Container {
+	return dag.Container().
+		From("ubuntu:22.04").
+		WithExec([]string{"apt", "update"}).
+		WithExec([]string{"apt", "install", "-y", "openssh-client", "sshpass"})
+}
+
 // Set configuration for SSH connections.
 func (s *Ssh) Config(
 	// destination to connect
@@ -21,14 +39,18 @@ func (s *Ssh) Config(
 	// +optional
 	// +default=22
 	port int,
+	// base container
+	// +optional
+	baseCtr *Container,
 ) *SshConfig {
+	if baseCtr == nil {
+		baseCtr = s.BaseContainer()
+	}
+
 	return &SshConfig{
 		Destination: destination,
 		Port:        port,
-		BaseCtr: dag.Container().
-			From("ubuntu:22.04").
-			WithExec([]string{"apt", "update"}).
-			WithExec([]string{"apt", "install", "-y", "openssh-client", "sshpass"}),
+		BaseCtr:     baseCtr,
 	}
 }
 
