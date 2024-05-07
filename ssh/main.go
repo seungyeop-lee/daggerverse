@@ -106,6 +106,11 @@ type SshCommander struct {
 	SshCommand string
 }
 
+// Returns a container that is ready to launch SSH command.
+func (s *SshCommander) Container() *Container {
+	return s.BaseCtr
+}
+
 // Run the command on the remote server.
 func (s *SshCommander) Command(
 	// command
