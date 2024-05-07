@@ -8,6 +8,7 @@ import (
 	"errors"
 	"path"
 	"strconv"
+	"time"
 )
 
 // SCP dagger module
@@ -149,6 +150,7 @@ func (s *ScpCommander) FileToRemote(
 	}
 
 	return s.BaseCtr.
+		WithEnvVariable("CACHE_BUSTER", time.Now().String()).
 		WithFile(name, source).
 		WithExec(append(s.ScpBaseCommand, name, s.Destination+":"+target)), nil
 }
@@ -161,6 +163,7 @@ func (s *ScpCommander) FileFromRemote(
 	_, file := path.Split(source)
 
 	return s.BaseCtr.
+		WithEnvVariable("CACHE_BUSTER", time.Now().String()).
 		WithExec(append(s.ScpBaseCommand, s.Destination+":"+source, file)).
 		File(file)
 }
@@ -176,6 +179,7 @@ func (s *ScpCommander) DirectoryToRemote(
 	sourcePath := "/source-dir"
 
 	return s.BaseCtr.
+		WithEnvVariable("CACHE_BUSTER", time.Now().String()).
 		WithDirectory(sourcePath, source).
 		WithExec(append(s.ScpBaseCommand, "-r", sourcePath, s.Destination+":"+target)), nil
 }
@@ -188,6 +192,7 @@ func (s *ScpCommander) DirectoryFromRemote(
 	targetPath := "/target-dir"
 
 	return s.BaseCtr.
+		WithEnvVariable("CACHE_BUSTER", time.Now().String()).
 		WithExec(append(s.ScpBaseCommand, "-r", s.Destination+":"+source, targetPath)).
 		Directory(targetPath)
 }
