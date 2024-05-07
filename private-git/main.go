@@ -20,16 +20,38 @@ type PrivateGit struct {
 	BaseCtr *Container
 }
 
-func New() *PrivateGit {
-	return &PrivateGit{
-		BaseCtr: dag.Container().
-			From("ubuntu:22.04").
-			WithWorkdir(WorkDir).
-			WithExec([]string{"apt", "update"}).
-			WithExec([]string{"apt", "install", "-y", "git"}).
-			WithEnvVariable("CACHE_BUSTER", time.Now().String()).
-			WithExec([]string{"git", "config", "--global", "--add", "--bool", "push.autoSetupRemote", "true"}),
+func New(
+	// base container
+	// +optional
+	baseCtr *Container,
+) *PrivateGit {
+	git := &PrivateGit{}
+	if baseCtr != nil {
+		git.BaseCtr = baseCtr
+	} else {
+		git.BaseCtr = git.BaseContainer()
 	}
+	return git
+}
+
+// Get the base container for the PrivateGit module.
+// Used when you need to inject a Service into a BaseContainer and run it.
+//
+// Example:
+//
+//	dag.PrivateGit(PrivateGitOpts{
+//		BaseCtr: dag.PrivateGit().BaseContainer().WithServiceBinding("gitea", git),
+//	})...
+//
+// Note: As of v0.11.2, passing a Service directly as a parameter to an external dagger function would not bind to the container created inside the dagger function.
+func (g *PrivateGit) BaseContainer() *Container {
+	return dag.Container().
+		From("ubuntu:22.04").
+		WithWorkdir(WorkDir).
+		WithExec([]string{"apt", "update"}).
+		WithExec([]string{"apt", "install", "-y", "git"}).
+		WithEnvVariable("CACHE_BUSTER", time.Now().String()).
+		WithExec([]string{"git", "config", "--global", "--add", "--bool", "push.autoSetupRemote", "true"})
 }
 
 // Set up an existing repository folder.
