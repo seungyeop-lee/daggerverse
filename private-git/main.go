@@ -66,17 +66,20 @@ func (g *PrivateGit) Repo(
 
 // Set the ssh key.
 //
-// Note: Recommend using RSA-formatted private key files. Cannot use OPENSSH-formatted private key files.
-// https://github.com/dagger/dagger/issues/7220
+// Note: Tested against RSA-formatted and OPENSSH-formatted private keys.
 func (g *PrivateGit) WithSshKey(
 	// ssk key file
 	sshKey *Secret,
 ) *PrivateGitSsh {
+	//https://github.com/dagger/dagger/issues/7220
+	tempKeyPath := "/identity_temp_key"
 	keyPath := "/identity_key"
 
 	return &PrivateGitSsh{
 		BaseCtr: g.BaseCtr.
-			WithMountedSecret(keyPath, sshKey).
+			WithMountedSecret(tempKeyPath, sshKey).
+			WithExec([]string{"cp", tempKeyPath, keyPath}).
+			WithExec([]string{"sh", "-c", "echo '' >> " + keyPath}).
 			WithEnvVariable("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=accept-new", keyPath)),
 	}
 }
