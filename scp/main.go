@@ -13,6 +13,24 @@ import (
 // SCP dagger module
 type Scp struct{}
 
+// Get the base container for the SCP module.
+// Used when you need to inject a Service into a BaseContainer and run it.
+//
+// Example:
+//
+//	dag.Scp().Config("admin@sshd", ScpConfigOpts{
+//		Port:    8022,
+//		BaseCtr: dag.Scp().BaseContainer().WithServiceBinding("sshd", sshd),
+//	})...
+//
+// Note: As of v0.11.2, passing a Service directly as a parameter to an external dagger function would not bind to the container created inside the dagger function.
+func (s *Scp) BaseContainer() *Container {
+	return dag.Container().
+		From("ubuntu:22.04").
+		WithExec([]string{"apt", "update"}).
+		WithExec([]string{"apt", "install", "-y", "openssh-client", "sshpass"})
+}
+
 // Set configuration for SCP connections.
 func (s *Scp) Config(
 	// destination to connect
@@ -22,15 +40,19 @@ func (s *Scp) Config(
 	// +optional
 	// +default=22
 	port int,
-) (*ScpConfig, error) {
+	// base container
+	// +optional
+	baseCtr *Container,
+) *ScpConfig {
+	if baseCtr == nil {
+		baseCtr = s.BaseContainer()
+	}
+
 	return &ScpConfig{
 		Destination: destination,
 		Port:        port,
-		BaseCtr: dag.Container().
-			From("ubuntu:22.04").
-			WithExec([]string{"apt", "update"}).
-			WithExec([]string{"apt", "install", "-y", "openssh-client", "sshpass"}),
-	}, nil
+		BaseCtr:     baseCtr,
+	}
 }
 
 // SCP configuration
