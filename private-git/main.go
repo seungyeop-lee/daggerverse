@@ -179,6 +179,12 @@ type PrivateGitRepo struct {
 	RepoDir *Directory
 }
 
+// Returns the container with RepoDir.
+func (g *PrivateGitRepo) Container() *Container {
+	return g.BaseCtr.
+		WithDirectory(WorkDir, g.RepoDir)
+}
+
 // Returns the repository.
 func (g *PrivateGitRepo) Directory() *Directory {
 	return g.RepoDir
