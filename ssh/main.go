@@ -20,7 +20,7 @@ type Ssh struct{}
 //
 //	dag.SSH().Config("admin@sshd", SSHConfigOpts{
 //		Port:    8022,
-//		BaseCtr: dag.SSH().BaseContainer().WithServiceBinding("sshd", sshd)
+//		BaseCtr: dag.SSH().BaseContainer().WithServiceBinding("sshd", sshd),
 //	})...
 //
 // Note: As of v0.11.2, passing a Service directly as a parameter to an external dagger function would not bind to the container created inside the dagger function.
