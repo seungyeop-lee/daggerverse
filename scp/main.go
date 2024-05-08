@@ -97,15 +97,11 @@ func (s *ScpConfig) WithIdentityFile(
 	// identity file
 	arg *Secret,
 ) (*ScpCommander, error) {
-	//https://github.com/dagger/dagger/issues/7220
-	tempKeyPath := "/identity_temp_key"
 	keyPath := "/identity_key"
 
 	return &ScpCommander{
 		Destination: s.Destination,
-		BaseCtr: s.BaseCtr.WithMountedSecret(tempKeyPath, arg).
-			WithExec([]string{"cp", tempKeyPath, keyPath}).
-			WithExec([]string{"sh", "-c", "echo '' >> " + keyPath}),
+		BaseCtr:     s.BaseCtr.WithMountedSecret(keyPath, arg),
 		ScpBaseCommand: []string{
 			"scp",
 			"-i", keyPath,

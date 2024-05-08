@@ -90,14 +90,10 @@ func (s *SshConfig) WithIdentityFile(
 	// identity file
 	arg *Secret,
 ) *SshCommander {
-	//https://github.com/dagger/dagger/issues/7220
-	tempKeyPath := "/identity_temp_key"
 	keyPath := "/identity_key"
 
 	return &SshCommander{
-		BaseCtr: s.BaseCtr.WithMountedSecret(tempKeyPath, arg).
-			WithExec([]string{"cp", tempKeyPath, keyPath}).
-			WithExec([]string{"sh", "-c", "echo '' >> " + keyPath}),
+		BaseCtr:    s.BaseCtr.WithMountedSecret(keyPath, arg),
 		SshCommand: fmt.Sprintf(`ssh -i %s -o StrictHostKeyChecking=no -p %d %s`, keyPath, s.Port, s.Destination),
 	}
 }

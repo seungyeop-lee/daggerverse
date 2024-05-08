@@ -71,15 +71,11 @@ func (g *PrivateGit) WithSshKey(
 	// ssk key file
 	sshKey *Secret,
 ) *PrivateGitSsh {
-	//https://github.com/dagger/dagger/issues/7220
-	tempKeyPath := "/identity_temp_key"
 	keyPath := "/identity_key"
 
 	return &PrivateGitSsh{
 		BaseCtr: g.BaseCtr.
-			WithMountedSecret(tempKeyPath, sshKey).
-			WithExec([]string{"cp", tempKeyPath, keyPath}).
-			WithExec([]string{"sh", "-c", "echo '' >> " + keyPath}).
+			WithMountedSecret(keyPath, sshKey).
 			WithEnvVariable("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=accept-new", keyPath)),
 	}
 }
