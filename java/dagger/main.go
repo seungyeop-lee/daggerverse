@@ -4,6 +4,8 @@
 
 package main
 
+import "errors"
+
 const DefaultImage = "eclipse-temurin:21-jdk"
 const DefaultWorkdir = "/app"
 
@@ -29,6 +31,8 @@ type JavaConfig struct {
 	GradleCache bool
 	// +private
 	MavenCache bool
+	// +private
+	Dir *Directory
 }
 
 // Sets a custom Docker image for the Java application.
@@ -49,8 +53,14 @@ func (c *JavaConfig) WithMavenCache() *JavaConfig {
 	return c
 }
 
+// Sets the directory to run the command in.
+func (c *JavaConfig) WithDir(dir *Directory) *JavaConfig {
+	c.Dir = dir
+	return c
+}
+
 // Returns the conainer with the settings applied.
-func (c *JavaConfig) Container() *Container {
+func (c *JavaConfig) Container() (*Container, error) {
 	ctr := dag.Container().
 		From(DefaultImage).
 		WithWorkdir(DefaultWorkdir)
@@ -68,19 +78,24 @@ func (c *JavaConfig) Container() *Container {
 			WithMountedCache("/root/.m2", dag.CacheVolume("java-root-maven-cache"))
 	}
 
-	return ctr
+	if c.Dir != nil {
+		ctr = ctr.WithDirectory(DefaultWorkdir, c.Dir)
+	} else {
+		return nil, errors.New("dir is required")
+	}
+
+	return ctr, nil
 }
 
 // Run the command in the environment you set up.
 func (c *JavaConfig) Run(
-	// Directory to run the command in
-	dir *Directory,
 	// Command to run
 	cmd []string,
-) *Container {
-	ctr := c.Container()
+) (*Container, error) {
+	ctr, err := c.Container()
+	if err != nil {
+		return nil, err
+	}
 
-	return ctr.
-		WithDirectory(DefaultWorkdir, dir).
-		WithExec(cmd)
+	return ctr.WithExec(cmd), nil
 }
