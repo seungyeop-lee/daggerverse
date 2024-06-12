@@ -85,6 +85,7 @@ func (s *ScpConfig) WithPassword(
 			"-p", passwordText,
 			"scp",
 			"-o", "StrictHostKeyChecking=no",
+			"-o", "LogLevel=error",
 			"-P", strconv.Itoa(s.Port),
 		},
 	}, nil
@@ -106,6 +107,7 @@ func (s *ScpConfig) WithIdentityFile(
 			"scp",
 			"-i", keyPath,
 			"-o", "StrictHostKeyChecking=no",
+			"-o", "LogLevel=error",
 			"-P", strconv.Itoa(s.Port),
 		},
 	}, nil

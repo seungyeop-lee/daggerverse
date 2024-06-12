@@ -76,7 +76,7 @@ func (g *PrivateGit) WithSshKey(
 	return &PrivateGitSsh{
 		BaseCtr: g.BaseCtr.
 			WithMountedSecret(keyPath, sshKey).
-			WithEnvVariable("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=accept-new", keyPath)),
+			WithEnvVariable("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=no -o LogLevel=error", keyPath)),
 	}
 }
 

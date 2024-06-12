@@ -79,7 +79,7 @@ func (s *SshConfig) WithPassword(
 
 	return &SshCommander{
 		BaseCtr:    s.BaseCtr,
-		SshCommand: fmt.Sprintf(`sshpass -p %s ssh -o StrictHostKeyChecking=no -p %d %s`, passwordText, s.Port, s.Destination),
+		SshCommand: fmt.Sprintf(`sshpass -p %s ssh -o StrictHostKeyChecking=no -o LogLevel=error -p %d %s`, passwordText, s.Port, s.Destination),
 	}, nil
 }
 
@@ -94,7 +94,7 @@ func (s *SshConfig) WithIdentityFile(
 
 	return &SshCommander{
 		BaseCtr:    s.BaseCtr.WithMountedSecret(keyPath, arg),
-		SshCommand: fmt.Sprintf(`ssh -i %s -o StrictHostKeyChecking=no -p %d %s`, keyPath, s.Port, s.Destination),
+		SshCommand: fmt.Sprintf(`ssh -i %s -o StrictHostKeyChecking=no -o LogLevel=error -p %d %s`, keyPath, s.Port, s.Destination),
 	}
 }
 
