@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"dagger/ssh/internal/dagger"
 	"errors"
 	"fmt"
 	"time"
@@ -23,8 +24,8 @@ type Ssh struct{}
 //		BaseCtr: dag.SSH().BaseContainer().WithServiceBinding("sshd", sshd),
 //	})...
 //
-// Note: As of v0.11.2, passing a Service directly as a parameter to an external dagger function would not bind to the container created inside the dagger function.
-func (s *Ssh) BaseContainer() *Container {
+// Note: When a Service is passed directly as a parameter to an external Dagger function, it does not bind to the container created inside the Dagger function. (Confirmed in v0.13.3)
+func (s *Ssh) BaseContainer() *dagger.Container {
 	return dag.Container().
 		From("ubuntu:22.04").
 		WithExec([]string{"apt", "update"}).
@@ -42,7 +43,7 @@ func (s *Ssh) Config(
 	port int,
 	// base container
 	// +optional
-	baseCtr *Container,
+	baseCtr *dagger.Container,
 ) *SshConfig {
 	if baseCtr == nil {
 		baseCtr = s.BaseContainer()
@@ -63,14 +64,14 @@ type SshConfig struct {
 	Port int
 
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 }
 
 // Set the password as the SSH connection credentials.
 func (s *SshConfig) WithPassword(
 	ctx context.Context,
 	// password
-	arg *Secret,
+	arg *dagger.Secret,
 ) (*SshCommander, error) {
 	passwordText, err := arg.Plaintext(ctx)
 	if err != nil {
@@ -88,7 +89,7 @@ func (s *SshConfig) WithPassword(
 // Note: Tested against RSA-formatted and OPENSSH-formatted private keys.
 func (s *SshConfig) WithIdentityFile(
 	// identity file
-	arg *Secret,
+	arg *dagger.Secret,
 ) *SshCommander {
 	keyPath := "/identity_key"
 
@@ -101,13 +102,13 @@ func (s *SshConfig) WithIdentityFile(
 // SSH command launcher
 type SshCommander struct {
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 	// +private
 	SshCommand string
 }
 
 // Returns a container that is ready to launch SSH command.
-func (s *SshCommander) Container() *Container {
+func (s *SshCommander) Container() *dagger.Container {
 	return s.BaseCtr
 }
 
@@ -115,7 +116,7 @@ func (s *SshCommander) Container() *Container {
 func (s *SshCommander) Command(
 	// command
 	arg string,
-) *Container {
+) *dagger.Container {
 	exec := s.BaseCtr.
 		WithEnvVariable("CACHE_BUSTER", time.Now().String()).
 		WithExec([]string{
