@@ -144,6 +144,16 @@ func (g *PrivateGitHttp) WithRepoUrl(
 	}, nil
 }
 
+// Set up an existing repository folder.
+func (g *PrivateGitHttp) Repo(
+	dir *Directory,
+) *PrivateGitRepo {
+	return &PrivateGitRepo{
+		BaseCtr: g.BaseCtr,
+		RepoDir: dir,
+	}
+}
+
 // PrivateGit with target Repositorydml URL information added
 type PrivateGitRepoUrl struct {
 	// +private
