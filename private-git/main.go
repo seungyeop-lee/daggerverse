@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"dagger/git/internal/dagger"
 	"fmt"
 	"strings"
 	"time"
@@ -17,13 +18,13 @@ const WorkDir = "/tmp/repo/"
 // PrivateGit dagger module
 type PrivateGit struct {
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 }
 
 func New(
 	// base container
 	// +optional
-	baseCtr *Container,
+	baseCtr *dagger.Container,
 ) *PrivateGit {
 	git := &PrivateGit{}
 	if baseCtr != nil {
@@ -43,8 +44,8 @@ func New(
 //		BaseCtr: dag.PrivateGit().BaseContainer().WithServiceBinding("gitea", git),
 //	})...
 //
-// Note: As of v0.11.2, passing a Service directly as a parameter to an external dagger function would not bind to the container created inside the dagger function.
-func (g *PrivateGit) BaseContainer() *Container {
+// Note: When a Service is passed directly as a parameter to an external Dagger function, it does not bind to the container created inside the Dagger function. (Confirmed in v0.13.3)
+func (g *PrivateGit) BaseContainer() *dagger.Container {
 	return dag.Container().
 		From("ubuntu:22.04").
 		WithWorkdir(WorkDir).
@@ -56,7 +57,7 @@ func (g *PrivateGit) BaseContainer() *Container {
 
 // Set up an existing repository folder.
 func (g *PrivateGit) Repo(
-	dir *Directory,
+	dir *dagger.Directory,
 ) *PrivateGitRepo {
 	return &PrivateGitRepo{
 		BaseCtr: g.BaseCtr,
@@ -69,7 +70,7 @@ func (g *PrivateGit) Repo(
 // Note: Tested against RSA-formatted and OPENSSH-formatted private keys.
 func (g *PrivateGit) WithSshKey(
 	// ssk key file
-	sshKey *Secret,
+	sshKey *dagger.Secret,
 ) *PrivateGitSsh {
 	keyPath := "/identity_key"
 
@@ -83,7 +84,7 @@ func (g *PrivateGit) WithSshKey(
 // Set up user and password information.
 func (g *PrivateGit) WithUserPassword(
 	username string,
-	password *Secret,
+	password *dagger.Secret,
 ) *PrivateGitHttp {
 	return &PrivateGitHttp{
 		BaseCtr:  g.BaseCtr,
@@ -95,7 +96,7 @@ func (g *PrivateGit) WithUserPassword(
 // PrivateGit with SSH settings
 type PrivateGitSsh struct {
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 }
 
 // Set the SSH URL of the target repository.
@@ -110,7 +111,7 @@ func (g *PrivateGitSsh) WithRepoUrl(
 
 // Set up an existing repository folder.
 func (g *PrivateGitSsh) Repo(
-	dir *Directory,
+	dir *dagger.Directory,
 ) *PrivateGitRepo {
 	return &PrivateGitRepo{
 		BaseCtr: g.BaseCtr,
@@ -121,11 +122,11 @@ func (g *PrivateGitSsh) Repo(
 // PrivateGit with user and password information added
 type PrivateGitHttp struct {
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 	// +private
 	Username string
 	// +private
-	Password *Secret
+	Password *dagger.Secret
 }
 
 // Set the Web URL of the target repository.
@@ -146,7 +147,7 @@ func (g *PrivateGitHttp) WithRepoUrl(
 
 // Set up an existing repository folder.
 func (g *PrivateGitHttp) Repo(
-	dir *Directory,
+	dir *dagger.Directory,
 ) *PrivateGitRepo {
 	return &PrivateGitRepo{
 		BaseCtr: g.BaseCtr,
@@ -157,7 +158,7 @@ func (g *PrivateGitHttp) Repo(
 // PrivateGit with target Repositorydml URL information added
 type PrivateGitRepoUrl struct {
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 	// +private
 	RepoUrl string
 }
@@ -183,19 +184,19 @@ func (g *PrivateGitRepoUrl) Clone(
 // Working with private Git repositories
 type PrivateGitRepo struct {
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 	// +private
-	RepoDir *Directory
+	RepoDir *dagger.Directory
 }
 
 // Returns the container with RepoDir.
-func (g *PrivateGitRepo) Container() *Container {
+func (g *PrivateGitRepo) Container() *dagger.Container {
 	return g.BaseCtr.
 		WithDirectory(WorkDir, g.RepoDir)
 }
 
 // Returns the repository.
-func (g *PrivateGitRepo) Directory() *Directory {
+func (g *PrivateGitRepo) Directory() *dagger.Directory {
 	return g.RepoDir
 }
 
@@ -211,14 +212,14 @@ func (g *PrivateGitRepo) SetConfig(
 }
 
 // Push the repository.
-func (g *PrivateGitRepo) Push() *Container {
+func (g *PrivateGitRepo) Push() *dagger.Container {
 	return g.BaseCtr.
 		WithDirectory(WorkDir, g.RepoDir).
 		WithExec([]string{"git", "push"})
 }
 
 // Pull the repository.
-func (g *PrivateGitRepo) Pull() *Directory {
+func (g *PrivateGitRepo) Pull() *dagger.Directory {
 	return g.BaseCtr.
 		WithDirectory(WorkDir, g.RepoDir).
 		WithExec([]string{"git", "pull"}).
