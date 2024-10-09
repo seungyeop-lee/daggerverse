@@ -1,0 +1,8 @@
+services:
+  sshd:
+    image: sshd:scptest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8022:22"
