@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"dagger/scp/internal/dagger"
 	"errors"
 	"path"
 	"strconv"
@@ -24,8 +25,8 @@ type Scp struct{}
 //		BaseCtr: dag.Scp().BaseContainer().WithServiceBinding("sshd", sshd),
 //	})...
 //
-// Note: As of v0.11.2, passing a Service directly as a parameter to an external dagger function would not bind to the container created inside the dagger function.
-func (s *Scp) BaseContainer() *Container {
+// Note: When a Service is passed directly as a parameter to an external Dagger function, it does not bind to the container created inside the Dagger function. (Confirmed in v0.13.3)
+func (s *Scp) BaseContainer() *dagger.Container {
 	return dag.Container().
 		From("ubuntu:22.04").
 		WithExec([]string{"apt", "update"}).
@@ -43,7 +44,7 @@ func (s *Scp) Config(
 	port int,
 	// base container
 	// +optional
-	baseCtr *Container,
+	baseCtr *dagger.Container,
 ) *ScpConfig {
 	if baseCtr == nil {
 		baseCtr = s.BaseContainer()
@@ -63,14 +64,14 @@ type ScpConfig struct {
 	// +private
 	Port int
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 }
 
 // Set the password as the SCP connection credentials.
 func (s *ScpConfig) WithPassword(
 	ctx context.Context,
 	// password
-	arg *Secret,
+	arg *dagger.Secret,
 ) (*ScpCommander, error) {
 	passwordText, err := arg.Plaintext(ctx)
 	if err != nil {
@@ -96,7 +97,7 @@ func (s *ScpConfig) WithPassword(
 // Note: Tested against RSA-formatted and OPENSSH-formatted private keys.
 func (s *ScpConfig) WithIdentityFile(
 	// identity file
-	arg *Secret,
+	arg *dagger.Secret,
 ) (*ScpCommander, error) {
 	keyPath := "/identity_key"
 
@@ -118,13 +119,13 @@ type ScpCommander struct {
 	// +private
 	Destination string
 	// +private
-	BaseCtr *Container
+	BaseCtr *dagger.Container
 	// +private
 	ScpBaseCommand []string
 }
 
 // Returns a container that is ready to launch SCP command.
-func (s *ScpCommander) Container() *Container {
+func (s *ScpCommander) Container() *dagger.Container {
 	return s.BaseCtr
 }
 
@@ -132,12 +133,12 @@ func (s *ScpCommander) Container() *Container {
 func (s *ScpCommander) FileToRemote(
 	ctx context.Context,
 	// source file
-	source *File,
+	source *dagger.File,
 	// destination path
 	// (If not entered, '.' is used as the default)
 	// +optional
 	target string,
-) (*Container, error) {
+) (*dagger.Container, error) {
 	if target == "" {
 		target = "."
 	}
@@ -157,7 +158,7 @@ func (s *ScpCommander) FileToRemote(
 func (s *ScpCommander) FileFromRemote(
 	// source path
 	source string,
-) *File {
+) *dagger.File {
 	_, file := path.Split(source)
 
 	return s.BaseCtr.
@@ -169,11 +170,11 @@ func (s *ScpCommander) FileFromRemote(
 // Copy a directory to a remote server.
 func (s *ScpCommander) DirectoryToRemote(
 	// source directory
-	source *Directory,
+	source *dagger.Directory,
 	// destination path
 	// (If the path is an already existing directory, it will be copied to the '[path]/source-dir' location)
 	target string,
-) (*Container, error) {
+) (*dagger.Container, error) {
 	sourcePath := "/source-dir"
 
 	return s.BaseCtr.
@@ -186,7 +187,7 @@ func (s *ScpCommander) DirectoryToRemote(
 func (s *ScpCommander) DirectoryFromRemote(
 	// source path
 	source string,
-) *Directory {
+) *dagger.Directory {
 	targetPath := "/target-dir"
 
 	return s.BaseCtr.
