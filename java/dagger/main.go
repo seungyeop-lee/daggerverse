@@ -4,7 +4,10 @@
 
 package main
 
-import "errors"
+import (
+	"dagger/java/internal/dagger"
+	"errors"
+)
 
 const DefaultImage = "eclipse-temurin:21-jdk"
 const DefaultWorkdir = "/app"
@@ -32,7 +35,7 @@ type JavaConfig struct {
 	// +private
 	MavenCache bool
 	// +private
-	Dir *Directory
+	Dir *dagger.Directory
 }
 
 // Sets a custom Docker image for the Java application.
@@ -54,13 +57,13 @@ func (c *JavaConfig) WithMavenCache() *JavaConfig {
 }
 
 // Sets the directory to run the command in.
-func (c *JavaConfig) WithDir(dir *Directory) *JavaConfig {
+func (c *JavaConfig) WithDir(dir *dagger.Directory) *JavaConfig {
 	c.Dir = dir
 	return c
 }
 
 // Returns the conainer with the settings applied.
-func (c *JavaConfig) Container() (*Container, error) {
+func (c *JavaConfig) Container() (*dagger.Container, error) {
 	ctr := dag.Container().
 		From(DefaultImage).
 		WithWorkdir(DefaultWorkdir)
@@ -91,7 +94,7 @@ func (c *JavaConfig) Container() (*Container, error) {
 func (c *JavaConfig) Run(
 	// Command to run
 	cmd []string,
-) (*Container, error) {
+) (*dagger.Container, error) {
 	ctr, err := c.Container()
 	if err != nil {
 		return nil, err
