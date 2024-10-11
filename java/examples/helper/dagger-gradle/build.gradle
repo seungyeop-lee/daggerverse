@@ -26,8 +26,3 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
-
-bootJar {
-    destinationDirectory = file(rootDir.absolutePath + '/jar')
-    archiveFileName = "${project.name}.jar"
-}

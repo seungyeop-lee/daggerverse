@@ -47,10 +47,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <outputDirectory>${project.basedir}/jar</outputDirectory>
-                    <finalName>${project.artifactId}</finalName>
-                </configuration>
             </plugin>
         </plugins>
     </build>

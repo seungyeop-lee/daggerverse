@@ -70,14 +70,12 @@ func (c *JavaConfig) Container() (*dagger.Container, error) {
 
 	if c.GradleCache {
 		ctr = ctr.
-			WithMountedCache(DefaultWorkdir+"/build", dag.CacheVolume("java-app-build-cache")).
 			WithMountedCache(DefaultWorkdir+"/.gradle", dag.CacheVolume("java-app-gradle-cache")).
 			WithMountedCache("/root/.gradle", dag.CacheVolume("java-root-gradle-cache"))
 	}
 
 	if c.MavenCache {
 		ctr = ctr.
-			WithMountedCache(DefaultWorkdir+"/target", dag.CacheVolume("java-app-target-cache")).
 			WithMountedCache("/root/.m2", dag.CacheVolume("java-root-maven-cache"))
 	}
 

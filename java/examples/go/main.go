@@ -9,8 +9,8 @@ func (e *Examples) Java_BuildByMaven(dir *dagger.Directory) *dagger.File {
 		Init().
 		WithMavenCache().
 		WithDir(dir).
-		Run([]string{"./mvnw", "package"}).
-		File("jar/dagger-maven.jar")
+		Run([]string{"./mvnw", "clean", "package"}).
+		File("target/dagger-maven-0.0.1-SNAPSHOT.jar")
 }
 
 func (e *Examples) Java_BuildByGradle(dir *dagger.Directory) *dagger.File {
@@ -19,5 +19,5 @@ func (e *Examples) Java_BuildByGradle(dir *dagger.Directory) *dagger.File {
 		WithGradleCache().
 		WithDir(dir).
 		Run([]string{"./gradlew", "bootJar"}).
-		File("jar/dagger-gradle.jar")
+		File("build/libs/dagger-gradle-0.0.1-SNAPSHOT.jar")
 }
